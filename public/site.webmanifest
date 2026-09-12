@@ -1,0 +1,17 @@
+{
+  "name": "Wasi Ahmad Photography",
+  "short_name": "Wasi Ahmad™",
+  "description": "Luxury Wedding Photography & Cinematic Wedding Films based in Lahore, Pakistan.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF5EA",
+  "theme_color": "#FAF5EA",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
