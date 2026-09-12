@@ -25,6 +25,7 @@ const defaultImages = [
 const Skiper30 = ({ images = defaultImages }: { images?: string[] }) => {
   const gallery = useRef<HTMLDivElement>(null);
   const [dimension, setDimension] = useState({ width: 0, height: 0 });
+  const [isMobile, setIsMobile] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: gallery,
@@ -32,35 +33,47 @@ const Skiper30 = ({ images = defaultImages }: { images?: string[] }) => {
   });
 
   const { height } = dimension;
-  const y = useTransform(scrollYProgress, [0, 1], [0, height * 2]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * 3.3]);
+
+  // Gentler multipliers on mobile to reduce the total pixel distance animated per frame
+  const y = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 0.8 : 2)]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, height * (isMobile ? 1.2 : 3.3)]);
   const y3 = useTransform(scrollYProgress, [0, 1], [0, height * 1.25]);
   const y4 = useTransform(scrollYProgress, [0, 1], [0, height * 3]);
 
   useEffect(() => {
-    const lenis = new Lenis();
-
-    const raf = (time: number) => {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    };
-
     const resize = () => {
       setDimension({ width: window.innerWidth, height: window.innerHeight });
+      setIsMobile(window.innerWidth < 768);
     };
 
-    window.addEventListener("resize", resize);
-    requestAnimationFrame(raf);
     resize();
+    window.addEventListener("resize", resize);
+
+    // Only initialize Lenis smooth-scroll on desktop — mobile browsers
+    // already have hardware-accelerated native scroll; Lenis fights the
+    // compositor and causes the jitter/lag the user reported.
+    let lenis: Lenis | null = null;
+    let rafId: number | null = null;
+
+    if (window.innerWidth >= 768) {
+      lenis = new Lenis();
+      const raf = (time: number) => {
+        lenis!.raf(time);
+        rafId = requestAnimationFrame(raf);
+      };
+      rafId = requestAnimationFrame(raf);
+    }
 
     return () => {
       window.removeEventListener("resize", resize);
+      if (lenis) lenis.destroy();
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, []);
 
   return (
     <section className="w-full overflow-hidden">
-      {/* Portfolio intro heading — matches the light gray reference */}
+      {/* Portfolio intro heading */}
       <div className="relative flex flex-col items-center justify-center py-28 md:py-36 bg-surface-secondary/60">
         <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-multiply flex items-center justify-center">
           <img src="/images/bg/ascii-1.png" alt="" className="object-cover w-full h-full" />
@@ -105,13 +118,14 @@ const Column = ({ images, y, className }: ColumnProps) => {
   return (
     <motion.div
       className={`relative -top-[45%] h-[160%] md:h-[140%] w-1/2 md:w-1/3 lg:w-1/4 min-w-[140px] flex-col gap-[4vw] md:gap-[2vw] first:top-[-45%] [&:nth-child(2)]:top-[-95%] [&:nth-child(3)]:top-[-45%] [&:nth-child(4)]:top-[-75%] ${className || ""}`}
-      style={{ y }}
+      style={{ y, willChange: "transform" }}
     >
       {images.map((src, i) => (
         <div key={i} className="relative h-full w-full overflow-hidden rounded-xl">
           <img
             src={`${src}`}
             alt="wedding photograph"
+            loading="lazy"
             className="pointer-events-none object-cover w-full h-full"
           />
         </div>
